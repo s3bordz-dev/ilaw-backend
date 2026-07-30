@@ -1,0 +1,9 @@
+{
+  "name": "ilaw-backend",
+  "version": "1.0.0",
+  "description": "DepEd ILAW AI Backend",
+  "main": "api/generate.js",
+  "dependencies": {
+    "@google/genai": "^0.1.1"
+  }
+}
