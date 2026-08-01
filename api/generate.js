@@ -1,55 +1,42 @@
-const { GoogleGenAI } = require("@google/genai");
+export default async function handler(req, res) {
+  // 1. Handle CORS (Allows your frontend to talk to this backend)
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-const ILAW_MASTER_PROMPT = `
-You are an expert curriculum developer for the Philippine Department of Education (DepEd). 
-Generate a comprehensive Lesson Plan strictly aligned with DepEd Order No. 016, s. 2026 (ILAW Framework).
-
-Structure the output into four mandatory sections:
-
-1. I — INTENTIONS
-   - Learning Competencies & Standards
-   - Specific Learning Objectives
-   - Learner Context (strengths, interests, barriers)
-
-2. L — LEARNING EXPERIENCES
-   - Pre-Lesson (Motivation/Review)
-   - Flow (Presentation, Concept Building, Processing, Guided & Independent Practice)
-   - Learning Resources & Integration Opportunities
-
-3. A — ASSESSING LEARNING
-   - Formative Assessment Checks & Feedback Methods
-   - Inclusive Accommodations
-
-4. W — WAYS FORWARD
-   - Extended Learning Opportunities (Remediation / Enrichment)
-   - Reflective Practice Notes
-
-At the top, include:
-Declaration of AI Use: "AI was used to generate the initial draft of this lesson plan following DepEd DO 16, s. 2026. Reviewed and adapted by the teacher."
-
-Format the entire lesson plan in clear Markdown.
-`;
-
-module.exports = async (req, res) => {
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: "Method Not Allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
 
   try {
-    const { prompt } = req.body || {};
-    if (!prompt) return res.status(400).json({ error: "Please provide a subject/topic prompt." });
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'GEMINI_API_KEY is missing in Vercel Environment Variables.' });
+    }
 
-    const fullPrompt = `${ILAW_MASTER_PROMPT}\n\nTeacher Request:\n${prompt}`;
+    // 2. Forward the exact payload to Google using your secure key
+    const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: fullPrompt,
+    const googleResponse = await fetch(googleUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(req.body) // Sends whatever your frontend sent
     });
 
-    return res.status(200).json({ lessonPlan: response.text });
-  } catch (err) {
-    console.error("Gemini Error:", err);
-    return res.status(500).json({ error: "Failed to generate ILAW Lesson Plan." });
+    const data = await googleResponse.json();
+    
+    // 3. Send Google's exact response back to your frontend
+    return res.status(200).json(data);
+
+  } catch (error) {
+    console.error("Backend Error:", error);
+    return res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
-};
+}
