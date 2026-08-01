@@ -14,31 +14,18 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: 'GEMINI_API_KEY is missing in Vercel Environment Variables.' });
     }
 
-    // 2. Parse string body if necessary, then format for Gemini API
+    // 2. Parse the body safely
     const bodyData = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    let formattedBody = bodyData;
 
-    if (bodyData && bodyData.prompt) {
-      formattedBody = {
-        contents: [
-          {
-            parts: [
-              { text: bodyData.prompt }
-            ]
-          }
-        ]
-      };
-    }
-
-    // 3. Forward request to Google Gemini API
-    const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+    // 3. Forward the frontend's full payload straight to Google Gemini API
+    const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const googleResponse = await fetch(googleUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(formattedBody)
+      body: JSON.stringify(bodyData) // Send the full payload as-is!
     });
 
     const data = await googleResponse.json();
