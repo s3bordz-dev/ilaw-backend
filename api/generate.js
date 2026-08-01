@@ -17,13 +17,18 @@ export default async function handler(req, res) {
     // 2. Automatically format the payload for Google Gemini
     let formattedBody = req.body;
 
+    // 2. Automatically format the payload for Google Gemini
+    // This safely guarantees Vercel reads the data as an object, not a string
+    const bodyData = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    let formattedBody = bodyData;
+
     // If your frontend sent { prompt: "..." }, convert it to Google's required structure:
-    if (req.body && req.body.prompt) {
+    if (bodyData && bodyData.prompt) {
       formattedBody = {
         contents: [
           {
             parts: [
-              { text: req.body.prompt }
+              { text: bodyData.prompt }
             ]
           }
         ]
@@ -31,7 +36,7 @@ export default async function handler(req, res) {
     }
 
     // 3. Forward request to Google Gemini API
-    const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
     const googleResponse = await fetch(googleUrl, {
       method: 'POST',
