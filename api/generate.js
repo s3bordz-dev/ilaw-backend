@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // 1. Set CORS headers so frontend can talk to backend
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -14,15 +14,10 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'GEMINI_API_KEY is missing in Vercel Environment Variables.' });
     }
 
-    // 2. Automatically format the payload for Google Gemini
-    let formattedBody = req.body;
-
-    // 2. Automatically format the payload for Google Gemini
-    // This safely guarantees Vercel reads the data as an object, not a string
+    // 2. Parse string body if necessary, then format for Gemini API
     const bodyData = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     let formattedBody = bodyData;
 
-    // If your frontend sent { prompt: "..." }, convert it to Google's required structure:
     if (bodyData && bodyData.prompt) {
       formattedBody = {
         contents: [
@@ -52,4 +47,4 @@ export default async function handler(req, res) {
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
-}
+};
